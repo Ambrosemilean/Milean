@@ -1,4 +1,142 @@
-HTML
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>University Help Desk</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .chat-container {
+            height: calc(100vh - 160px);
+        }
+        .message-enter {
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="max-w-4xl mx-auto p-4">
+        <!-- Header -->
+        <div class="bg-blue-600 text-white p-4 rounded-t-lg flex items-center">
+            <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center mr-3">
+                <i class="fas fa-robot"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-xl">University Help Desk</h1>
+                <p class="text-sm opacity-80">Ask me about admissions, courses, and more!</p>
+            </div>
+        </div>
+
+        <!-- Chat Area -->
+        <div class="chat-container bg-white p-4 overflow-y-auto shadow-lg">
+            <div id="chat-messages" class="space-y-3">
+                <!-- Initial greeting -->
+                <div class="message-enter flex">
+                    <div class="bg-blue-100 p-3 rounded-lg max-w-[80%]">
+                        <p>👋 Hello! I'm your university assistant. How can I help you today?</p>
+                        <div class="flex flex-wrap gap-2 mt-2">
+                            <button onclick="sendQuickReply(this)" class="bg-blue-500 text-white px-3 py-1 rounded-full text-sm hover:bg-blue-600 transition">Admission requirements</button>
+                            <button onclick="sendQuickReply(this)" class="bg-blue-500 text-white px-3 py-1 rounded-full text-sm hover:bg-blue-600 transition">Course list</button>
+                            <button onclick="sendQuickReply(this)" class="bg-blue-500 text-white px-3 py-1 rounded-full text-sm hover:bg-blue-600 transition">Application deadline</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="bg-white p-3 rounded-b-lg shadow-lg flex">
+            <input type="text" id="user-input" placeholder="Type your question..." 
+                   class="flex-1 border border-gray-300 rounded-l-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <button id="send-btn" class="bg-blue-600 text-white px-4 py-2 rounded-r-lg hover:bg-blue-700 transition">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const chatMessages = document.getElementById('chat-messages');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+
+        // Send message on button click or Enter key
+        sendBtn.addEventListener('click', sendMessage);
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        function sendMessage() {
+            const message = userInput.value.trim();
+            if (!message) return;
+
+            // Add user message to chat
+            addMessage(message, 'user');
+            userInput.value = '';
+
+            // Show typing indicator
+            const typingIndicator = document.createElement('div');
+            typingIndicator.className = 'flex';
+            typingIndicator.innerHTML = `
+                <div class="bg-gray-100 p-3 rounded-lg max-w-[80%] flex items-center">
+                    <div class="typing-dots space-x-1">
+                        <span class="inline-block w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span>
+                        <span class="inline-block w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100"></span>
+                        <span class="inline-block w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-200"></span>
+                    </div>
+                </div>
+            `;
+            chatMessages.appendChild(typingIndicator);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            // Get bot response
+            fetch('/get_response', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_input: message })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Remove typing indicator
+                chatMessages.removeChild(typingIndicator);
+                
+                // Add bot response
+                addMessage(data.answer, 'bot', data.quick_replies);
+            });
+        }
+
+        function sendQuickReply(button) {
+            userInput.value = button.textContent;
+            sendMessage();
+        }
+
+        function addMessage(content, sender, quickReplies = []) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message-enter flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+            
+            messageDiv.innerHTML = `
+                <div class="${sender === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-100'} p-3 rounded-lg max-w-[80%]">
+                    ${sender === 'bot' ? content : `<p>${content}</p>`}
+                    ${quickReplies.length > 0 ? `
+                        <div class="flex flex-wrap gap-2 mt-2">
+                            ${quickReplies.map(reply => 
+                                `<button onclick="sendQuickReply(this)" class="${sender === 'user' ? 'bg-blue-700' : 'bg-blue-500'} text-white px-3 py-1 rounded-full text-sm hover:bg-blue-600 transition">${reply}</button>`
+                            ).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+    </script>
+</body>
+</html>
 
 
 
